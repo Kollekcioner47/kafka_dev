@@ -1,0 +1,10 @@
+dev\kafka\StreamsExample.class
+dev\kafka\ProducerExample.class
+dev\kafka\ConsumerVisualizer$1.class
+dev\kafka\OrderPartitioner.class
+dev\kafka\ConsumerExample$1.class
+dev\kafka\ConsumerVisualizer.class
+dev\kafka\ConsumerExample.class
+dev\kafka\AdminExample.class
+dev\kafka\TransactionalConsumer.class
+dev\kafka\TransactionalProducer.class

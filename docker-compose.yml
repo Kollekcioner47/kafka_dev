@@ -1,0 +1,200 @@
+# Локальный стенд курса «Apache Kafka для разработчиков»
+# Confluent Platform 7.7 (Kafka 3.7, ZooKeeper-режим) + Kafdrop + Schema Registry
+# + REST Proxy + Apache Flink (Модуль 9).
+#
+# Три брокера (kafka1..kafka3) — чтобы наглядно показать репликацию (RF=3),
+# распределение лидеров партиций и failover при остановке брокера.
+#
+# Запуск:        docker compose up -d
+# Остановка:     docker compose down
+# Полный сброс:  docker compose down -v   (удалит все данные/топики)
+#
+# Порты:
+#   2181  ZooKeeper
+#   9092..9094  Kafka (EXTERNAL для клиентов с хоста: kafka1..kafka3)
+#   9000  Kafdrop (веб-UI)          http://localhost:9000
+#   8081  Schema Registry           http://localhost:8081
+#   8082  REST Proxy                http://localhost:8082
+#   18081 Flink Web UI              http://localhost:18081
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.1
+    container_name: kafka-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      # 4lw-команда `srvr` разрешена в ZooKeeper по умолчанию (в отличие от `ruok`).
+      test: ["CMD-SHELL", "echo srvr | nc localhost 2181 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # ------------------------------------------------------------------ #
+  # Три брокера. У каждого два listener'а:
+  #   EXTERNAL (localhost:909X) — для клиентов с хоста;
+  #   INTERNAL (kafkaN:29092)  — для контейнеров в сети Docker.
+  # Без INTERNAL соседние контейнеры (SR/REST/Flink) не смогли бы подключиться:
+  # брокер анонсировал бы им localhost:9092 = их собственный адрес.
+  # ------------------------------------------------------------------ #
+  kafka1:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: kafka1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: kafka2
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:29092,EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    ports:
+      - "9093:9092"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  kafka3:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: kafka3
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:29092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    ports:
+      - "9094:9092"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:3.31.0
+    container_name: kafdrop
+    depends_on:
+      kafka1:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERCONNECT: kafka1:29092,kafka2:29092,kafka3:29092
+      JVM_OPTS: "-Xms64M -Xmx256M"
+    ports:
+      - "9000:9000"
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    container_name: schema-registry
+    depends_on:
+      kafka1:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:29092,kafka2:29092,kafka3:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8081:8081"
+
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.7.1
+    container_name: rest-proxy
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      schema-registry:
+        condition: service_started
+    environment:
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:29092,kafka2:29092,kafka3:29092
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8082
+      KAFKA_REST_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_REST_PRODUCER_REQUEST_TIMEOUT_MS: 5000
+    ports:
+      - "8082:8082"
+
+  # ------------------------------------------------------------------ #
+  # Apache Flink (Модуль 9). SQL Client запускается вручную:
+  #   docker exec -it flink-jobmanager ./bin/sql-client.sh
+  # Flink Web UI: http://localhost:18081
+  # ------------------------------------------------------------------ #
+  flink-jobmanager:
+    image: flink:1.20-scala_2.12
+    container_name: flink-jobmanager
+    ports:
+      - "18081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        parallelism.default: 1
+
+  flink-taskmanager:
+    image: flink:1.20-scala_2.12
+    container_name: flink-taskmanager
+    depends_on:
+      - flink-jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 1
