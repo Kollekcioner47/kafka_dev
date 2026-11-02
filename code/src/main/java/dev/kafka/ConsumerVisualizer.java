@@ -97,28 +97,53 @@ public class ConsumerVisualizer {
         }
     }
 
-    /** Три числа по каждой партиции: position / committed / end (+ lag). */
+    /**
+     * Три числа по каждой партиции: position / committed / end (+ lag).
+     *
+     * ЗАЧЕМ try-catch и повторная проверка assignment:
+     * rebalance в Kafka выполняется АСИНХРОННО фоновым потоком консюмера.
+     * Между вызовом assignment() и position(tp) партицию могут отозвать
+     * (например, когда в группу приходит второй консюмер) — и тогда
+     * position() для уже «чужой» партиции бросит IllegalStateException,
+     * который уронит весь консюмер.
+     * Поэтому:
+     *   1) перед position() сверяемся со СВЕЖИМ assignment() и пропускаем
+     *      уже отозванные партиции;
+     *   2) весь блок обёрнут в try-catch — даже если гонка всё же случилась,
+     *      мы пропускаем вывод таблицы, а не падаем.
+     */
     private static void printOffsetTable(KafkaConsumer<String, String> consumer, String label) {
         Set<TopicPartition> assignment = consumer.assignment();
         if (assignment.isEmpty()) {
             return;
         }
-        Map<TopicPartition, Long> endOffsets = consumer.endOffsets(assignment);
-        Map<TopicPartition, OffsetAndMetadata> committedMap = consumer.committed(assignment);
+        try {
+            Map<TopicPartition, Long> endOffsets = consumer.endOffsets(assignment);
+            Map<TopicPartition, OffsetAndMetadata> committedMap = consumer.committed(assignment);
 
-        System.out.println("  ---- [" + label + "] состояние партиций ----");
-        System.out.printf("    %-14s %-10s %-11s %-10s %-6s%n",
-                "partition", "position", "committed", "end", "lag");
-        for (TopicPartition tp : assignment) {
-            long position = consumer.position(tp);
-            OffsetAndMetadata committed = committedMap.get(tp);
-            String committedStr = (committed == null || committed.offset() < 0)
-                    ? "(нет)" : String.valueOf(committed.offset());
-            long end = endOffsets.getOrDefault(tp, -1L);
-            System.out.printf("    %-14s %-10d %-11s %-10d %-6d%n",
-                    tp, position, committedStr, end, end - position);
+            System.out.println("  ---- [" + label + "] состояние партиций ----");
+            System.out.printf("    %-14s %-10s %-11s %-10s %-6s%n",
+                    "partition", "position", "committed", "end", "lag");
+            for (TopicPartition tp : assignment) {
+                // rebalance идёт в фоне: партицию могли отозвать между строками выше
+                // и этим вызовом. position() по отозванной партиции = IllegalStateException.
+                if (!consumer.assignment().contains(tp)) {
+                    continue;
+                }
+                long position = consumer.position(tp);
+                OffsetAndMetadata committed = committedMap.get(tp);
+                String committedStr = (committed == null || committed.offset() < 0)
+                        ? "(нет)" : String.valueOf(committed.offset());
+                long end = endOffsets.getOrDefault(tp, -1L);
+                System.out.printf("    %-14s %-10d %-11s %-10d %-6d%n",
+                        tp, position, committedStr, end, end - position);
+            }
+            System.out.println();
+        } catch (Exception e) {
+            // Страховка от гонки: таблица не критична для работы консюмера,
+            // поэтому при rebalance просто пропускаем её вывод.
+            System.out.println("  [" + label + "] (таблица недоступна во время rebalance)");
         }
-        System.out.println();
     }
 
     private static void banner(String label, String text) {
