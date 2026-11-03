@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Maven settings — обход блокировки Maven Central (РКН).
+
+  ЗАЧЕМ: по умолчанию Maven качает зависимости с https://repo.maven.apache.org,
+  который может быть заблокирован/нестабилен. Этот файл переключает Central
+  на зеркало Google Cloud Storage.
+
+  КАК ИСПОЛЬЗОВАТЬ:
+    1) скопируйте этот файл в:
+         Windows:  C:\Users\<ваш_пользователь>\.m2\settings.xml
+         Linux/macOS:  ~/.m2/settings.xml
+       (каталог .m2 создаётся автоматически после первого запуска Maven)
+    2) пересоберите проект:  mvn compile
+
+  ЕСЛИ ЗЕРКАЛО google-central ТОЖЕ НЕДОСТУПНО — замените <url> на один из:
+    https://maven.aliyun.com/repository/public
+    https://repo.huaweicloud.com/repository/maven
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+  <!-- Зеркалируем ТОЛЬКО central; репозиторий Confluent (packages.confluent.io)
+       из pom.xml идёт напрямую. -->
+  <mirrors>
+    <mirror>
+      <id>google-central</id>
+      <name>Google Cloud Storage mirror of Maven Central</name>
+      <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+
+</settings>
