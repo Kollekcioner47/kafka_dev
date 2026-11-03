@@ -126,13 +126,19 @@ docker compose ps             # flink-jobmanager / flink-taskmanager должн�
 
 ### Шаг 2. Данные в Kafka
 
-Создадим топик `orders` и наполним его через `ProducerExample` (Модуль 2):
+Создадим топики **явно** — в нашем стенде автосоздание выключено
+(`KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"` в `docker-compose.yml`). Поэтому
+sink-топики `orders-paid` и `orders-agg-flink`, куда Flink будет писать,
+нужно создать заранее — иначе `INSERT INTO` упадёт с ошибкой, что топика нет.
 
 ```bash
 docker exec kafka1 kafka-topics --bootstrap-server localhost:29092 \
   --create --topic orders --partitions 4 --replication-factor 3
-cd code && mvn -q compile
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ProducerExample
+docker exec kafka1 kafka-topics --bootstrap-server localhost:29092 \
+  --create --topic orders-paid --partitions 3 --replication-factor 3
+docker exec kafka1 kafka-topics --bootstrap-server localhost:29092 \
+  --create --topic orders-agg-flink --partitions 3 --replication-factor 3
+java -jar dist/module02-producer/producer-example.jar
 ```
 
 ### Шаг 3. SQL Client

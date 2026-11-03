@@ -186,7 +186,7 @@ topology.addSource("Source", "orders")
 
 ## Live coding: разработка приложения с Kafka Streams
 
-Исходный код — в `code/src/main/java/dev/kafka/StreamsExample.java`.
+Запуск — готовым fat-JAR из `dist/` (без Maven). Исходники — в `code/src/main/java/dev/kafka/StreamsExample.java`.
 
 Бизнес-кейс: из топика `orders` (JSON) считаем **сумму оплаченных заказов по
 клиенту** и обогащаем результат именем клиента из справочника `customers`.
@@ -231,8 +231,7 @@ docker exec -it kafka1 kafka-console-producer \
 ### Шаг 2. Топология
 
 ```bash
-cd code && mvn -q compile
-mvn -q exec:java -Dexec.mainClass=dev.kafka.StreamsExample
+java -jar dist/module06-streams/streams-example.jar
 ```
 
 Топология делает:

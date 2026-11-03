@@ -223,7 +223,7 @@ producer.close();   // flush + освобождение ресурсов
 
 ## Live coding: реализация Producer с различными конфигурациями
 
-Исходный код — в `code/src/main/java/dev/kafka/ProducerExample.java` и
+Запуск — готовым fat-JAR из `dist/` (без Maven). Исходники — в `code/src/main/java/dev/kafka/ProducerExample.java` и
 `OrderPartitioner.java`.
 
 ### Шаг 1. Подготовка
@@ -234,7 +234,6 @@ producer.close();   // flush + освобождение ресурсов
 docker exec kafka1 kafka-topics --bootstrap-server localhost:29092 \
   --create --topic orders --partitions 4 --replication-factor 3
 
-cd code && mvn -q compile
 ```
 
 ### Шаг 2. Базовый продюсер с Callback
@@ -243,7 +242,7 @@ cd code && mvn -q compile
 Запуск:
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ProducerExample
+java -jar dist/module02-producer/producer-example.jar
 ```
 
 Пример вывода (порядок строк может отличаться):
@@ -281,7 +280,7 @@ private static long run(String label, Properties props, int n) {
 Режим `bench` уже есть в `ProducerExample` — запускаем:
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ProducerExample -Dexec.args="bench"
+java -jar dist/module02-producer/producer-example.jar bench
 ```
 
 Внутри `bench()` сравниваются два набора свойств и запускаются два прогона:
@@ -300,7 +299,7 @@ run("acks=all", pAll, 10_000);
 Режим `partitioner` тоже есть в `ProducerExample` — запускаем:
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ProducerExample -Dexec.args="partitioner"
+java -jar dist/module02-producer/producer-example.jar partitioner
 ```
 
 Внутри он подключает `OrderPartitioner`:

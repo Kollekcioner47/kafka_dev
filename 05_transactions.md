@@ -138,7 +138,7 @@ props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
 
 ## Live coding: реализация транзакционного Producer и Consumer
 
-Исходный код — в `code/src/main/java/dev/kafka/TransactionalProducer.java` и
+Запуск — готовым fat-JAR из `dist/` (без Maven). Исходники — в `code/src/main/java/dev/kafka/TransactionalProducer.java` и
 `TransactionalConsumer.java`.
 
 ### Шаг 1. Топики
@@ -153,8 +153,7 @@ docker exec kafka1 kafka-topics --bootstrap-server localhost:29092 \
 ### Шаг 2. Успешная транзакция
 
 ```bash
-cd code && mvn -q compile
-mvn -q exec:java -Dexec.mainClass=dev.kafka.TransactionalProducer -Dexec.args="commit"
+java -jar dist/module05-transactions/transactional-producer.jar commit
 ```
 
 Продюсер запишет `orderId` в **оба** топика (`tx-orders-out` и `tx-audit`)
@@ -170,7 +169,7 @@ docker exec kafka1 kafka-console-consumer --bootstrap-server localhost:29092 \
 ### Шаг 3. Откат транзакции
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.TransactionalProducer -Dexec.args="abort"
+java -jar dist/module05-transactions/transactional-producer.jar abort
 ```
 
 Продюсер пишет сообщения и вызывает `abortTransaction()`. Теперь сравним два
@@ -178,10 +177,10 @@ mvn -q exec:java -Dexec.mainClass=dev.kafka.TransactionalProducer -Dexec.args="a
 
 ```bash
 # read_uncommitted — видит и откаченные записи
-mvn -q exec:java -Dexec.mainClass=dev.kafka.TransactionalConsumer -Dexec.args="read_uncommitted"
+java -jar dist/module05-transactions/transactional-consumer.jar read_uncommitted
 
 # read_committed — откаченные записи скрыты
-mvn -q exec:java -Dexec.mainClass=dev.kafka.TransactionalConsumer -Dexec.args="read_committed"
+java -jar dist/module05-transactions/transactional-consumer.jar read_committed
 ```
 
 `read_committed` покажет только сообщения из **успешной** транзакции (Шаг 2),

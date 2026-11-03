@@ -134,7 +134,7 @@ props.put("schema.registry.url", "http://localhost:8081");
 
 ## Live coding: использование Schema Registry с Avro сериализацией
 
-Исходный код — в `code/src/main/java/dev/kafka/AvroProducer.java` и
+Запуск — готовым fat-JAR из `dist/` (без Maven). Исходники — в `code/src/main/java/dev/kafka/AvroProducer.java` и
 `AvroConsumer.java` (GenericRecord).
 
 ### Шаг 1. Подготовка
@@ -150,8 +150,7 @@ curl -s http://localhost:8081/subjects   # пока пусто
 ### Шаг 2. Avro-продюсер
 
 ```bash
-cd code && mvn -q compile
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AvroProducer
+java -jar dist/module07-avro/avro-producer.jar
 ```
 
 Продюсер пишет заказы в `orders-avro` (value — Avro `Order`, ключ — строка).
@@ -169,7 +168,7 @@ curl -s http://localhost:8081/subjects/orders-avro-value/versions/latest
 ### Шаг 4. Avro-консюмер
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AvroConsumer
+java -jar dist/module07-avro/avro-consumer.jar
 ```
 
 Консюмер читает Avro-байты через `KafkaAvroDeserializer` и выводит поля объекта.
@@ -180,9 +179,9 @@ mvn -q exec:java -Dexec.mainClass=dev.kafka.AvroConsumer
 режим). Запустим ещё раз:
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AvroProducer -Dexec.args="v2"
+java -jar dist/module07-avro/avro-producer.jar v2
 curl -s http://localhost:8081/subjects/orders-avro-value/versions   # теперь две версии
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AvroConsumer            # старый консюмер читает новые данные
+java -jar dist/module07-avro/avro-consumer.jar            # старый консюмер читает новые данные
 ```
 
 Консюмер без поля `currency` корректно читает новые сообщения (BACKWARD/дефолт).

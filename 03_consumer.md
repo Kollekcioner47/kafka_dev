@@ -224,7 +224,7 @@ consumer.assignment().forEach(tp -> {
 
 ## Live coding: визуальная демонстрация консюмера
 
-Исходный код — в `code/src/main/java/dev/kafka/ConsumerVisualizer.java`
+Запуск — готовым fat-JAR из `dist/` (без Maven). Исходники — в `code/src/main/java/dev/kafka/ConsumerVisualizer.java`
 (наглядный) и `ConsumerExample.java` (минимальный).
 
 `ConsumerVisualizer` читает по 5 сообщений за `poll` (`max.poll.records=5`) и
@@ -242,14 +242,13 @@ docker exec kafka1 kafka-topics --bootstrap-server localhost:29092 \
 Наполняем топик 40 заказами через `ProducerExample` (Модуль 2):
 
 ```bash
-cd code && mvn -q compile
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ProducerExample
+java -jar dist/module02-producer/producer-example.jar
 ```
 
 ### Шаг 2. Один консюмер — следим за тремя числами
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ConsumerVisualizer -Dexec.args="C1 earliest"
+java -jar dist/module03-consumer/consumer-visualizer.jar C1 earliest
 ```
 
 Разбираем вывод вместе:
@@ -274,7 +273,7 @@ docker exec kafka1 kafka-consumer-groups --bootstrap-server localhost:29092 \
 
 ```bash
 # terminal 2
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ConsumerVisualizer -Dexec.args="C2 earliest"
+java -jar dist/module03-consumer/consumer-visualizer.jar C2 earliest
 ```
 
 Теперь каждый печатает **свой** набор партиций: например `C1 → [orders-0, orders-1]`,
@@ -296,10 +295,10 @@ mvn -q exec:java -Dexec.mainClass=dev.kafka.ConsumerVisualizer -Dexec.args="C2 e
 
 ```bash
 # свежая группа с earliest читает с начала
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ConsumerVisualizer -Dexec.args="C3 earliest g-earliest"
+java -jar dist/module03-consumer/consumer-visualizer.jar C3 earliest g-earliest
 
 # свежая группа с latest не увидит старые 40 сообщений (только новые)
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ConsumerVisualizer -Dexec.args="C4 latest g-latest"
+java -jar dist/module03-consumer/consumer-visualizer.jar C4 latest g-latest
 ```
 
 ### Шаг 6. Очистка

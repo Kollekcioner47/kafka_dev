@@ -37,8 +37,8 @@ try (AdminClient admin = AdminClient.create(props)) {
 ## 2. Управление топиками
 
 ```java
-// Создание: имя -> число партиций и RF
-NewTopic topic = new NewTopic("orders", 4, (short) 1);
+// Создание: имя -> число партиций и RF (у нас три брокера — RF=3)
+NewTopic topic = new NewTopic("orders", 4, (short) 3);
 admin.createTopics(List.of(topic)).all().get();
 
 // Список и описание
@@ -205,14 +205,13 @@ admin.describeClientQuotas(ClientQuotaFilter.all()).entities().get()
 
 ## Live coding: использование Admin API для управления кластером
 
-Исходный код — в `code/src/main/java/dev/kafka/AdminExample.java`.
+Готовый fat-JAR — `dist/module04-admin/admin-example.jar`: запускаем без Maven, нужна только Java 17+. Исходники (для пересборки) — в `code/src/main/java/dev/kafka/AdminExample.java`.
 
 ### Шаг 1. Создание и описание топиков
 
 ```bash
-cd code && mvn -q compile
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="create"
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="describe"
+java -jar dist/module04-admin/admin-example.jar create
+java -jar dist/module04-admin/admin-example.jar describe
 ```
 
 `create` создаёт `orders` (4 партиции) и `orders-agg` (4 партиции);
@@ -221,7 +220,7 @@ mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="describe"
 ### Шаг 2. Увеличение партиций
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="partitions"
+java -jar dist/module04-admin/admin-example.jar partitions
 ```
 
 Проверяем: `orders` стал 6 партиций. Сравните в Kafdrop до/после.
@@ -230,19 +229,19 @@ mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="partitions
 
 ```bash
 # наполнить orders
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ProducerExample
+java -jar dist/module02-producer/producer-example.jar
 # запустить консюмер в фоне (в отдельном терминале)
-mvn -q exec:java -Dexec.mainClass=dev.kafka.ConsumerExample
+java -jar dist/module03-consumer/consumer-example.jar
 
 # посмотреть группы и офсеты
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="groups"
+java -jar dist/module04-admin/admin-example.jar groups
 ```
 
 ### Шаг 4. Удаление сообщений до offset и сброс группы
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="delete-records"
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="reset-offsets"
+java -jar dist/module04-admin/admin-example.jar delete-records
+java -jar dist/module04-admin/admin-example.jar reset-offsets
 ```
 
 После `reset-offsets` группа `orders-group` перечитает топик с начала.
@@ -250,8 +249,8 @@ mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="reset-offs
 ### Шаг 5. Квоты
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="quota"
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="list-quotas"
+java -jar dist/module04-admin/admin-example.jar quota
+java -jar dist/module04-admin/admin-example.jar list-quotas
 ```
 
 ### Шаг 6. ACL (после включения authorizer)
@@ -259,8 +258,8 @@ mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="list-quota
 Добавьте authorizer в compose (см. §5), пересоздайте брокера и выполните:
 
 ```bash
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="acl"
-mvn -q exec:java -Dexec.mainClass=dev.kafka.AdminExample -Dexec.args="list-acls"
+java -jar dist/module04-admin/admin-example.jar acl
+java -jar dist/module04-admin/admin-example.jar list-acls
 ```
 
 ### Шаг 7. Очистка
