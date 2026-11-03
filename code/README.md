@@ -9,6 +9,10 @@ Maven-проект с готовыми классами для live coding из 
 - Maven 3.8+;
 - поднятый стенд `docker compose up -d` (см. `docker-compose.yml` в корне курса).
 
+> **Если Maven Central заблокирован (РКН):** скопируйте `maven-settings.xml`
+> из корня курса в `~/.m2/settings.xml` — Maven переключится на зеркало
+> Google Cloud Storage.
+
 ## Сборка
 
 ```bash
